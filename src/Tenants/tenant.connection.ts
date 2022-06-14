@@ -4,8 +4,7 @@ import mongoose from "mongoose";
 import { TenantService } from "./tenants.service";
 import { TenantDocument } from "src/schemas/tenants.schema";
 import { REQUEST } from "@nestjs/core";
-import e, { Request } from 'express';
-
+import { Request } from 'express';
 let URI_MODEL = require('../config/uri.configuration')
 
 @Injectable({ scope: Scope.REQUEST })

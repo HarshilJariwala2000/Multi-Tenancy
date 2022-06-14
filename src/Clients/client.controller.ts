@@ -1,10 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { TenantConnection } from 'src/Tenants/tenant.connection';
-import { Tenant, TenantSchema } from '../schemas/tenants.schema';
-import { Client1, ClientSchema1, ClientDocument1 } from 'src/schemas/client1.schema';
-// import {Query} from 'mongoose'
-//import { ClientService } from './client.service';
-//import { AppService } from './app.service';
 
 @Controller()
 export class ClientController {
