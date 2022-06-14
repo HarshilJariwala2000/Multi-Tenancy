@@ -5,8 +5,6 @@ export type TenantDocument = Tenant & Document;
 
 @Schema()
 export class Tenant {
-  @Prop()
-  alias: string;
 
   @Prop()
   host: string;
@@ -15,7 +13,7 @@ export class Tenant {
   port: number;
 
   @Prop()
-  database: number;
+  databasename: string;
 
   @Prop()
   username: string;

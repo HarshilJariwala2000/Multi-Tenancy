@@ -1,12 +1,12 @@
 import { HttpException, HttpStatus, Inject, Injectable, Scope } from "@nestjs/common";
-import {Connection,Model} from "mongoose";
+import {Connection,Model, Schema} from "mongoose";
 import mongoose from "mongoose";
 import { TenantService } from "./tenants.service";
 import { TenantDocument } from "src/schemas/tenants.schema";
-import { ClientDocument, ClientSchema } from "src/schemas/client.schema";
-import { InjectConnection } from "@nestjs/mongoose";
 import { REQUEST } from "@nestjs/core";
 import e, { Request } from 'express';
+
+let URI_MODEL = require('../config/uri.configuration')
 
 @Injectable({ scope: Scope.REQUEST })
 export class TenantConnection {
@@ -14,7 +14,7 @@ export class TenantConnection {
 
     constructor(
         private tenantService: TenantService,
-        @Inject(REQUEST) private request: Request
+        @Inject(REQUEST) private request: Request,
     ) {}
     
     async getConnection(): Promise<Connection> {
@@ -23,7 +23,6 @@ export class TenantConnection {
 
         // Get the tenant details from the database
         const tenant = await this.tenantService.findByName(this._tenantId);
-        console.log(tenant);
 
         // Validation check if tenant exist
         if (!tenant) {
@@ -35,7 +34,8 @@ export class TenantConnection {
 
         // Find existing connection
         const foundConn = connections.find((con: Connection) => {
-            return con.name === `${tenant.alias}`;
+            // console.log('name '+con.name);
+            return con.name === `${tenant.databasename}`;
         });
 
         // Check if connection exist and is ready to execute
@@ -51,109 +51,98 @@ export class TenantConnection {
 
     private async createConnection(tenant: TenantDocument): Promise<Connection> {
         // Create or Return a mongo connection
-        const uri = `mongodb://${tenant.host}:${tenant.port}/${tenant.alias}?`+`replicaSet=rs0`;
-        console.log(uri);
+        let URI_FETCH = new URI_MODEL(tenant.host, tenant.port, tenant.databasename, tenant.username, tenant.password);
+        const uri = URI_FETCH.MONGO_URI()  
         const db = mongoose.createConnection(uri);
         console.log('created connection');
         return db;
 
     }
 
-    private async modelProvider(){
+    private async modelProvider(collectionName:string){
         const db = await this.getConnection();
         const session = await db.startSession();
-
         return {
-            "database": db.model('Client', ClientSchema),
+            "model": db.models[collectionName] || db.model(collectionName, new Schema({ any: Schema.Types.Mixed },{strict:false})),
             "session":session
         }
-        
+    }
+
+    //findById
+    async findById(collectionName: string, id:string){
+        const modelAndSession = await this.modelProvider(collectionName);
+        const model = modelAndSession.model;
+        return model.findById(id)
     }
 
     //Find All
-    async findAll() {
-        const model1 = (await this.modelProvider()).database;
-        return model1.find({});        
+    async findAll(collectionName:string) {
+        const modelAndSession = await this.modelProvider(collectionName);
+        const model = modelAndSession.model;
+        return model.find({});        
     }
 
     //Update
-    async updatemany(){
-        const model1 = (await this.modelProvider()).database;
-        const session = (await this.modelProvider()).session;
-
-        session.startTransaction();
-        try{
-            await model1.updateMany(
-                {},
-                {$set:{"name":"changed12345"}},
-            ).session(session)
-            await session.commitTransaction();
-    }catch(e){
-        console.log('Failed');
-        console.log(e);
-
-        await session.abortTransaction();
-
-    }finally{
-        console.log('closing transaction')
-        session.endSession();
-    }
+    async update(collectionName:string, findQuery:any, updateQuery:any){
+        const modelAndSession = await this.modelProvider(collectionName);
+        const model = modelAndSession.model;
+        await model.updateOne(findQuery, updateQuery)
     }
 
-    //Insert
-    async insertmany(){
-        const model1 =  (await this.modelProvider()).database;
-        const session =  (await this.modelProvider()).session;
-
-        session.startTransaction();
-        try{
+    // async insert(collectionName:string, findQuery:any, updateQuery:any){
+    //     const modelAndSession = await this.modelProvider(collectionName);
+    //     const model = modelAndSession.model;
+    //     const session = modelAndSession.session;
         
-            await model1.insertMany([
-                {"name":"123"},
-                {"name":"dfg"}
-            ],{
-                "session":session
-            })
+    // }
 
-            await session.commitTransaction();
-    }catch(e){
-        console.log('Failed')
-        console.log(e);
-
-        await session.abortTransaction();
-    }finally{
-        console.log('closing transaction')
-        session.endSession();
-    }
-    }
-
-    //Delete
-    async deletemany(){
-        const model1 =  (await this.modelProvider()).database;
-        const session =  (await this.modelProvider()).session;
-
+    //InsertMany
+    async insertMany(collectionName:string, body:any){
+        const modelAndSession = await this.modelProvider(collectionName);
+        const model = modelAndSession.model;
+        const session = modelAndSession.session;
         session.startTransaction();
         try{
-        
-            await model1.deleteMany({
-                "name":"delete"
-            }).session(session)
-                        
-            await model1.deleteOne({
-                "lastnam":"delete"
-            }).session(session)
-
+            await model.insertMany(body,{"session":session})
             await session.commitTransaction();
-    }catch(e){
-        console.log('Failed')
-        console.log(e);
-        await session.abortTransaction();
-    }finally{
-        console.log('closing transaction')
-        session.endSession();
+        }catch(e){
+            console.log(e);
+            await session.abortTransaction();
+        }finally{
+            console.log('closing transaction')
+            session.endSession();
+        }
     }
+
+    //Update
+    async updateMany(collectionName:string, findQuery:any, updateQuery:any){
+        const modelAndSession = await this.modelProvider(collectionName);
+        const model = modelAndSession.model;
+        const session = modelAndSession.session;
+        session.startTransaction();
+        try{
+            await model.updateMany(findQuery,updateQuery).session(session)
+            await session.commitTransaction();
+        }catch(e){
+            console.log(e);
+            await session.abortTransaction();
+        }finally{
+            console.log('closing transaction')
+            session.endSession();
+        }
+    }
+
+    async delete(collectionName:string, deleteQuery:any){
+        const modelAndSession = await this.modelProvider(collectionName);
+        const model = modelAndSession.model;
+        await model.deleteOne(deleteQuery)
+    }
+
+    async deleteMany(collectionName:string, deleteQuery:any){
+        const modelAndSession = await this.modelProvider(collectionName);
+        const model = modelAndSession.model;
+        await model.deleteMany(deleteQuery)
     }
 
 }
 
-//mongodb://localhost:27017/MasterDB/

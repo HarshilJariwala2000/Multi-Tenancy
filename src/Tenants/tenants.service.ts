@@ -8,6 +8,6 @@ export class TenantService{
     constructor(@InjectModel(Tenant.name) private tenantModel: Model<TenantDocument>) {}
     
     async findByName(name: string|string[]): Promise<TenantDocument> {
-        return await this.tenantModel.findOne({ alias:name });
+        return await this.tenantModel.findOne({ databasename:name });
     }
 }
