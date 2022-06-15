@@ -11,7 +11,7 @@ require('dotenv').config()
   imports: [
     ClientModule,
     TenantsModule,
-    MongooseModule.forRoot(process.env.MASTER_DB_URI, { connectionName: 'MasterDB' }),
+    MongooseModule.forRoot(process.env.MASTER_DB_URI),
   ],
   controllers: [AppController],
   providers: [AppService],

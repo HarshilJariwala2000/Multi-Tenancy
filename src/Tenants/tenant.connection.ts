@@ -5,11 +5,13 @@ import { TenantService } from "./tenants.service";
 import { TenantDocument } from "src/schemas/tenants.schema";
 import { REQUEST } from "@nestjs/core";
 import { Request } from 'express';
-let URI_MODEL = require('../config/uri.configuration')
+let URI_MODEL = require('../config/uri.configuration');
+let Admin = mongoose.mongo.Admin;
 
 @Injectable({ scope: Scope.REQUEST })
 export class TenantConnection {
     private _tenantId: string | string[];
+    private _collectionList:Object[]
 
     constructor(
         private tenantService: TenantService,
@@ -61,6 +63,20 @@ export class TenantConnection {
     private async modelProvider(collectionName:string){
         const db = await this.getConnection();
         const session = await db.startSession();
+
+        //Get list of collections
+        let collectionList = await db.getClient().db(db.name).listCollections().toArray();   
+
+        //Check if Collection Exist or not
+        const collectionExist = collectionList.find((col)=>{
+            console.log(col.name);
+            return col.name===collectionName;
+        })
+
+        if (!collectionExist) {
+            throw new HttpException('Collection not found', HttpStatus.NOT_FOUND);
+        }
+
         return {
             "model": db.models[collectionName] || db.model(collectionName, new Schema({ any: Schema.Types.Mixed },{strict:false})),
             "session":session
@@ -86,13 +102,13 @@ export class TenantConnection {
         const modelAndSession = await this.modelProvider(collectionName);
         const model = modelAndSession.model;
         await model.updateOne(findQuery, updateQuery)
+        
     }
 
     // async insert(collectionName:string, findQuery:any, updateQuery:any){
     //     const modelAndSession = await this.modelProvider(collectionName);
     //     const model = modelAndSession.model;
     //     const session = modelAndSession.session;
-        
     // }
 
     //InsertMany

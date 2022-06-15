@@ -7,7 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Tenant.name, schema: TenantSchema }],'MasterDB'),
+    MongooseModule.forFeature([{ name: Tenant.name, schema: TenantSchema }]),
     ConfigModule
   ],
   providers: [TenantService,TenantConnection,
