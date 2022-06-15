@@ -15,6 +15,11 @@ export class ClientController {
         return this.tenantConnection.findAll(collectionName);
     }
 
+    @Post('insertOne')
+    insert(@Body() body:any){
+        return this.tenantConnection.insert(body.collectionName,body.data);
+    }
+
     @Post('insertMany')
     insertMany(@Body() body: any) {
         return this.tenantConnection.insertMany(body.collectionName, body.data);

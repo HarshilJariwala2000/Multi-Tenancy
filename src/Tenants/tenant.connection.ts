@@ -65,7 +65,7 @@ export class TenantConnection {
         const session = await db.startSession();
 
         //Get list of collections
-        let collectionList = await db.getClient().db(db.name).listCollections().toArray();   
+        let collectionList = await db.getClient().db(db.name).listCollections().toArray();
 
         //Check if Collection Exist or not
         const collectionExist = collectionList.find((col)=>{
@@ -78,6 +78,7 @@ export class TenantConnection {
         }
 
         return {
+            "connection":db,
             "model": db.models[collectionName] || db.model(collectionName, new Schema({ any: Schema.Types.Mixed },{strict:false})),
             "session":session
         }
@@ -105,11 +106,12 @@ export class TenantConnection {
         
     }
 
-    // async insert(collectionName:string, findQuery:any, updateQuery:any){
-    //     const modelAndSession = await this.modelProvider(collectionName);
-    //     const model = modelAndSession.model;
-    //     const session = modelAndSession.session;
-    // }
+    async insert(collectionName:string, data:any){
+        const modelAndSession = await this.modelProvider(collectionName);
+        const db = modelAndSession.connection;
+        db.getClient().db(db.name).collection(collectionName).insertOne(data);
+        
+    }
 
     //InsertMany
     async insertMany(collectionName:string, body:any){
