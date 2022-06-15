@@ -76,7 +76,7 @@ export class TenantConnection {
 
         return {
             "connection":db,
-            "model": db.models[collectionName] || db.model(collectionName, new Schema({ any: Schema.Types.Mixed },{strict:false})),
+            "model": db.models[collectionName] || db.model(collectionName, new Schema({ any: Schema.Types.Mixed },{strict:false,versionKey: false})),
             "session":session
         }
     }
