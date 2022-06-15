@@ -18,7 +18,7 @@ export class TenantConnection {
         @Inject(REQUEST) private request: Request,
     ) {}
     
-    async getConnection(): Promise<Connection> {
+    private async getConnection(): Promise<Connection> {
         //Get TenantID from Header
         this._tenantId = this.request.headers['tenantid'];
 
@@ -35,7 +35,6 @@ export class TenantConnection {
 
         // Find existing connection
         const foundConn = connections.find((con: Connection) => {
-            // console.log('name '+con.name);
             return con.name === `${tenant.databasename}`;
         });
 
@@ -68,11 +67,9 @@ export class TenantConnection {
         let collectionList = await db.getClient().db(db.name).listCollections().toArray();
 
         //Check if Collection Exist or not
-        const collectionExist = collectionList.find((col)=>{
-            console.log(col.name);
-            return col.name===collectionName;
+        const collectionExist = collectionList.find((collection)=>{
+            return collection.name===collectionName;
         })
-
         if (!collectionExist) {
             throw new HttpException('Collection not found', HttpStatus.NOT_FOUND);
         }
@@ -106,6 +103,7 @@ export class TenantConnection {
         
     }
 
+    //InsertOne
     async insert(collectionName:string, data:any){
         const modelAndSession = await this.modelProvider(collectionName);
         const db = modelAndSession.connection;
@@ -149,12 +147,14 @@ export class TenantConnection {
         }
     }
 
+    //Delete
     async delete(collectionName:string, deleteQuery:any){
         const modelAndSession = await this.modelProvider(collectionName);
         const model = modelAndSession.model;
         await model.deleteOne(deleteQuery)
     }
 
+    //DeleteMany
     async deleteMany(collectionName:string, deleteQuery:any){
         const modelAndSession = await this.modelProvider(collectionName);
         const model = modelAndSession.model;
