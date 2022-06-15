@@ -11,7 +11,6 @@ let Admin = mongoose.mongo.Admin;
 @Injectable({ scope: Scope.REQUEST })
 export class TenantConnection {
     private _tenantId: string | string[];
-    private _collectionList:Object[]
 
     constructor(
         private tenantService: TenantService,
