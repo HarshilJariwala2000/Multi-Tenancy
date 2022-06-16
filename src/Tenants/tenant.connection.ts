@@ -26,7 +26,7 @@ export class TenantConnection {
 
         // Validation check if tenant exist
         if (!tenant) {
-            throw new HttpException('Tenant not found', HttpStatus.NOT_FOUND);
+            throw new HttpException(`Tenant:${this._tenantId} not found`, HttpStatus.NOT_FOUND);
         }
 
         //Get the underlying mongoose connections
@@ -70,7 +70,7 @@ export class TenantConnection {
             return collection.name===collectionName;
         })
         if (!collectionExist) {
-            throw new HttpException('Collection not found', HttpStatus.NOT_FOUND);
+            throw new HttpException(`Collection:${collectionName} not found`, HttpStatus.NOT_FOUND);
         }
 
         return {
@@ -121,7 +121,7 @@ export class TenantConnection {
         const model = modelAndSession.model;
         const found = await model.find({});
         if(found.length!=0) return found
-        else throw new HttpException(`Collection Empty`,404)        
+        else throw new HttpException(`Collection:${collectionName} Empty`,404)        
     }
 
     //InsertMany
