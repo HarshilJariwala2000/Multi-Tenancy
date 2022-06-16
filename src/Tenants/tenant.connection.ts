@@ -84,39 +84,18 @@ export class TenantConnection {
     async findById(collectionName: string, id:string){
         const modelAndSession = await this.modelProvider(collectionName);
         const model = modelAndSession.model;
-        return model.findById(id)
-    }
-
-    //Find All
-    async findAll(collectionName:string) {
-        const modelAndSession = await this.modelProvider(collectionName);
-        const model = modelAndSession.model;
-        return model.find({});        
+        const found = await model.findById(id).exec();
+        if(found) return found
+        else throw new HttpException(`id:${id} not found`,404)
     }
 
     //Update
     async update(collectionName:string, findQuery:any, updateQuery:any){
         const modelAndSession = await this.modelProvider(collectionName);
         const model = modelAndSession.model;
-        await model.updateOne(findQuery, updateQuery) 
-    }
-
-    //UpdateMany
-    async updateMany(collectionName:string, findQuery:any, updateQuery:any){
-        const modelAndSession = await this.modelProvider(collectionName);
-        const model = modelAndSession.model;
-        const session = modelAndSession.session;
-        session.startTransaction();
-        try{
-            await model.updateMany(findQuery,updateQuery).session(session)
-            await session.commitTransaction();
-        }catch(e){
-            console.log(e);
-            await session.abortTransaction();
-        }finally{
-            console.log('closing transaction')
-            session.endSession();
-        }
+        const updated = await model.updateOne(findQuery, updateQuery)
+        if(updated.matchedCount) return updated
+        else throw new HttpException(`id:${findQuery._id} not found`,404)
     }
 
     //InsertOne
@@ -125,6 +104,24 @@ export class TenantConnection {
         const db = modelAndSession.connection;
         db.getClient().db(db.name).collection(collectionName).insertOne(data);
         
+    }
+
+    //Delete
+    async delete(collectionName:string, deleteQuery:any){
+        const modelAndSession = await this.modelProvider(collectionName);
+        const model = modelAndSession.model;
+        const deleted = await model.deleteOne(deleteQuery)
+        if(deleted.deletedCount) return deleted
+        else throw new HttpException(`id:${deleteQuery._id} not found`,404)
+    }
+
+    //Find All
+    async findAll(collectionName:string) {
+        const modelAndSession = await this.modelProvider(collectionName);
+        const model = modelAndSession.model;
+        const found = await model.find({});
+        if(found.length!=0) return found
+        else throw new HttpException(`Collection Empty`,404)        
     }
 
     //InsertMany
@@ -145,20 +142,50 @@ export class TenantConnection {
         }
     }
 
-    
-
-    //Delete
-    async delete(collectionName:string, deleteQuery:any){
+    //UpdateMany
+    async updateMany(collectionName:string, findQuery:any, updateQuery:any){
         const modelAndSession = await this.modelProvider(collectionName);
         const model = modelAndSession.model;
-        await model.deleteOne(deleteQuery)
+        const session = modelAndSession.session;
+        session.startTransaction();
+        try{
+            const idArr = findQuery._id.$in;
+            let notFound:string[]=[];
+            for(let i=0; i < idArr.length; i++){
+                const found = await model.findById(idArr[i]).exec()
+                if(!found){
+                    notFound.push(idArr[i]);
+                }
+            }
+            if(notFound.length===0) {
+                await model.updateMany(findQuery,updateQuery).session(session).exec();
+                await session.commitTransaction()
+            }
+            else throw new HttpException(`ids:[${notFound}] not found`,404)
+        }catch(e){
+            console.log(e);
+            await session.abortTransaction();
+            throw new HttpException(e.message, e.status)
+        }finally{
+            console.log('closing transaction')
+            session.endSession();
+        }
     }
 
     //DeleteMany
     async deleteMany(collectionName:string, deleteQuery:any){
         const modelAndSession = await this.modelProvider(collectionName);
         const model = modelAndSession.model;
-        await model.deleteMany(deleteQuery)
+        const idArr = deleteQuery._id.$in;
+        let notFound:string[]=[];
+        for(let i=0; i < idArr.length; i++){
+            const found = await model.findById(idArr[i]).exec()
+            if(!found){
+                notFound.push(idArr[i]);
+            }
+        }
+        if(notFound.length===0) return await model.deleteMany(deleteQuery)
+        else throw new HttpException(`ids:[${notFound}] not found`,404)
     }
 
 }
