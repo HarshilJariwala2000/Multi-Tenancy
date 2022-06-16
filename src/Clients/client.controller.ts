@@ -16,8 +16,8 @@ export class ClientController {
     }
 
     @Post('insertOne')
-    insert(@Body() body:any){
-        return this.tenantConnection.insert(body.collectionName,body.data);
+    insert(@Body() body: any) {
+        return this.tenantConnection.insert(body.collectionName, body.data);
     }
 
     @Post('insertMany')
@@ -29,7 +29,7 @@ export class ClientController {
     update(@Body() body: any) {
         const findQuery = {}
         const updateQuery = { "$set": body.data }
-        return this.tenantConnection.updateMany(body.collectionName, findQuery, updateQuery)
+        return this.tenantConnection.update(body.collectionName, findQuery, updateQuery)
     }
 
     @Post('updateMany')

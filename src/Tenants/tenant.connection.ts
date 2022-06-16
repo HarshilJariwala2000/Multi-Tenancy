@@ -98,8 +98,25 @@ export class TenantConnection {
     async update(collectionName:string, findQuery:any, updateQuery:any){
         const modelAndSession = await this.modelProvider(collectionName);
         const model = modelAndSession.model;
-        await model.updateOne(findQuery, updateQuery)
-        
+        await model.updateOne(findQuery, updateQuery) 
+    }
+
+    //UpdateMany
+    async updateMany(collectionName:string, findQuery:any, updateQuery:any){
+        const modelAndSession = await this.modelProvider(collectionName);
+        const model = modelAndSession.model;
+        const session = modelAndSession.session;
+        session.startTransaction();
+        try{
+            await model.updateMany(findQuery,updateQuery).session(session)
+            await session.commitTransaction();
+        }catch(e){
+            console.log(e);
+            await session.abortTransaction();
+        }finally{
+            console.log('closing transaction')
+            session.endSession();
+        }
     }
 
     //InsertOne
@@ -128,23 +145,7 @@ export class TenantConnection {
         }
     }
 
-    //Update
-    async updateMany(collectionName:string, findQuery:any, updateQuery:any){
-        const modelAndSession = await this.modelProvider(collectionName);
-        const model = modelAndSession.model;
-        const session = modelAndSession.session;
-        session.startTransaction();
-        try{
-            await model.updateMany(findQuery,updateQuery).session(session)
-            await session.commitTransaction();
-        }catch(e){
-            console.log(e);
-            await session.abortTransaction();
-        }finally{
-            console.log('closing transaction')
-            session.endSession();
-        }
-    }
+    
 
     //Delete
     async delete(collectionName:string, deleteQuery:any){
